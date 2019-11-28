@@ -42,11 +42,15 @@ class TcpServer:
         self._socket.bind(self.endpoint)
         self._socket.listen(10)
         while self._is_listening:
-            (socket, addr) = self._socket.accept()
-            client = TcpClient(self._protocol)
-            client.connect_socket(socket)
-            client.on_disconnected.subscribe(self._handle_disconnected)
-            self._on_client_connected.invoke(self, client)
+            try:
+                (socket, addr) = self._socket.accept()
+                client = TcpClient(self._protocol)
+                client.connect_socket(socket)
+                self._clients.add(client)
+                client.on_disconnected.subscribe(self._handle_disconnected)
+                self._on_client_connected.invoke(self, client)
+            except:
+                pass
 
     def start(self):
         if self._is_listening:
@@ -58,4 +62,5 @@ class TcpServer:
         self._is_listening = False
 
     def _handle_disconnected(self, client: TcpClient, error: Exception):
+        self._clients.remove(client)
         self._on_client_disconnected.invoke(self, client, error)
